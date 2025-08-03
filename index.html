@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera MiniApp</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Camera MiniApp</h1>
+        
+        <div class="camera-section">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas" style="display: none;"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="startCamera" class="btn btn-primary">Start Camera</button>
+            <button id="capturePhoto" class="btn btn-secondary" disabled>Take Photo</button>
+            <button id="stopCamera" class="btn btn-danger" disabled>Stop Camera</button>
+        </div>
+        
+        <div class="photo-section">
+            <h3>Captured Photo:</h3>
+            <img id="capturedPhoto" alt="Captured photo will appear here" />
+            <button id="downloadPhoto" class="btn btn-success" style="display: none;">Download Photo</button>
+        </div>
+        
+        <div class="info-section">
+            <h3>Camera Info:</h3>
+            <div id="cameraInfo">
+                <p>Camera status: <span id="cameraStatus">Not started</span></p>
+                <p>Telegram WebApp: <span id="telegramStatus">Loading...</span></p>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+
