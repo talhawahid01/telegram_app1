@@ -12,6 +12,16 @@ let cameraPermissionGranted = false;
 let userDeniedPermission = false;
 let currentFacingMode = 'user'; // Track facing mode
 
+// IndexedDB for browser-local photo storage (not device gallery)
+let db;
+const dbRequest = indexedDB.open('MiniAppPhotos', 1);
+dbRequest.onupgradeneeded = (event) => {
+    event.target.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
+};
+dbRequest.onsuccess = () => { db = dbRequest.result; };
+dbRequest.onerror = () => { showMessage('Storage setup failed', 'error'); };
+
+
 // DOM elements
 const startCameraBtn = document.getElementById('startCamera');
 const capturePhotoBtn = document.getElementById('capturePhoto');
@@ -203,19 +213,20 @@ function savePhoto() {
         return;
     }
     
-    canvas.toBlob(async (blob) => {
+    canvas.toBlob((blob) => {
         try {
-            if (navigator.clipboard) {
-                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-                showMessage('Copied to clipboard. Paste in photos app to save—direct save impossible in MiniApp.', 'success');
-            } else {
-                showMessage('Clipboard unsupported. Long-press photo to save manually.', 'info');
-            }
+            const transaction = db.transaction(['photos'], 'readwrite');
+            const store = transaction.objectStore('photos');
+            store.add({ blob });
+            showMessage('Photo stored locally in browser (ID: last added). Retrieve via app reload or custom button.', 'success');
         } catch (error) {
-            showMessage('Save failed: ' + error.message + '. Use long-press.', 'error');
+            showMessage('Local storage failed: ' + error.message + '. Use clipboard instead.', 'error');
+            // Fallback to clipboard
+            navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).catch(() => {});
         }
     }, 'image/png');
 }
+
 
 function stopCamera() {
     if (cachedStream) {
@@ -274,17 +285,20 @@ function sharePhoto() {
             const url = URL.createObjectURL(blob);
             tg.showPopup({
                 title: 'Share Photo',
-                message: 'Select where to share:',
-                buttons: [{type: 'default', text: 'Share to Chat'}]
+                message: 'Share this photo over Telegram?',
+                buttons: [{type: 'default', text: 'Share'}]
             }, () => {
-                tg.openTelegramLink(`tg://msg?url=${encodeURIComponent(url)}&text=Check this photo!`);
+                tg.openTelegramLink(`tg://msg?text=Check this photo!&attach=${encodeURIComponent(url)}`);
+                URL.revokeObjectURL(url); // Clean up
             });
-            showMessage('Share popup opened—select contacts/chats manually.', 'success');
+            showMessage('Share dialog opened—select chat/contact.', 'success');
         } catch (error) {
-            showMessage('Share failed: ' + error.message + '. Copy and share via clipboard.', 'error');
+            showMessage('Share failed: ' + error.message, 'error');
+            URL.revokeObjectURL(url);
         }
     }, 'image/jpeg');
 }
+
 
 // Handle camera switching (front/back)
 function switchCamera() {
