@@ -43,7 +43,10 @@
         <div class="photo-section">
             <h3>Captured Photo:</h3>
             <img id="capturedPhoto" alt="Captured photo will appear here" />
-            <button id="downloadPhoto" class="btn btn-success" style="display: none;">Download Photo</button>
+            <button id="savePhotoBtn" class="btn btn-primary" disabled>
+                <span class="btn-icon">💾</span>
+                Save Photo
+            </button>
         </div>
         
         <div class="info-section">
@@ -67,9 +70,7 @@
             <h4>Photo Download</h4>
             <p>In Telegram:</p>
             <ul>
-                <li>Photos are automatically copied to clipboard</li>
-                <li>Use "Share Photo" button to share in chats</li>
-                <li>Long-press on photo to save manually</li>
+                <li>To save: Tap "Save Photo" to copy to clipboard, then manually paste/save in your photos app. Long-press preview as fallback.</li>
             </ul>
         </div>
     </details>
