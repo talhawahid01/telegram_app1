@@ -18,25 +18,25 @@
         
         <div class="camera-section">
             <div class="video-container">
-                <video id="video" autoplay playsinline muted></video>
+                <video id="video" playsinline="true" autoplay="true" muted="true"></video>
                 <canvas id="canvas" style="display: none;"></canvas>
                 
-                <!-- Camera overlay UI -->
+                <!-- Single camera status overlay -->
                 <div class="camera-overlay">
                     <div class="camera-info">
                         <span id="cameraStatus">Ready to start 📷</span>
                     </div>
                 </div>
             </div>
-        </div>
+        </div>        
         
         <div class="controls">
             <button id="startCamera" class="btn btn-primary">Start Camera</button>
-            <button id="capturePhoto" class="btn btn-secondary" disabled>Take Photo</button>
+            <button id="capturePhoto" class="btn btn-secondary" disabled>Take Photo</button>  
             <button id="switchCameraBtn" class="btn btn-secondary" style="display: none;">
                 <span class="btn-icon">🔄</span>
                 Switch Camera
-            </button>            
+            </button>                      
             <button id="stopCamera" class="btn btn-danger" disabled>Stop Camera</button>
         </div>
         
@@ -49,7 +49,6 @@
         <div class="info-section">
             <h3>Camera Info:</h3>
             <div id="cameraInfo">
-                <p>Camera status: <span id="cameraStatus">Not started</span></p>
                 <p>Telegram WebApp: <span id="telegramStatus">Loading...</span></p>
             </div>
         </div>
