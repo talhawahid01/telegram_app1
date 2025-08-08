@@ -2,23 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Camera MiniApp</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    
+    <!-- Enhanced mobile support -->
+    <meta name="theme-color" content="#0088cc">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
     <div class="container">
         <h1>📸 Camera MiniApp</h1>
         
         <div class="camera-section">
-            <video id="video" autoplay playsinline></video>
-            <canvas id="canvas" style="display: none;"></canvas>
+            <div class="video-container">
+                <video id="video" autoplay playsinline muted></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                
+                <!-- Camera overlay UI -->
+                <div class="camera-overlay">
+                    <div class="camera-info">
+                        <span id="cameraStatus">Ready to start 📷</span>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <div class="controls">
             <button id="startCamera" class="btn btn-primary">Start Camera</button>
             <button id="capturePhoto" class="btn btn-secondary" disabled>Take Photo</button>
+            <button id="switchCameraBtn" class="btn btn-secondary" style="display: none;">
+                <span class="btn-icon">🔄</span>
+                Switch Camera
+            </button>            
             <button id="stopCamera" class="btn btn-danger" disabled>Stop Camera</button>
         </div>
         
@@ -36,6 +54,27 @@
             </div>
         </div>
     </div>
+    <details class="help-section">
+        <summary>❓ Need Help?</summary>
+        <div class="help-content">
+            <h4>Camera Permissions</h4>
+            <p>If camera access is denied:</p>
+            <ul>
+                <li>Check your browser/app camera permissions</li>
+                <li>Refresh the page and try again</li>
+                <li>Make sure no other apps are using the camera</li>
+            </ul>
+            
+            <h4>Photo Download</h4>
+            <p>In Telegram:</p>
+            <ul>
+                <li>Photos are automatically copied to clipboard</li>
+                <li>Use "Share Photo" button to share in chats</li>
+                <li>Long-press on photo to save manually</li>
+            </ul>
+        </div>
+    </details>
+    
     
     <script src="script.js"></script>
 </body>
