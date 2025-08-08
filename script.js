@@ -17,7 +17,6 @@ const startCameraBtn = document.getElementById('startCamera');
 const capturePhotoBtn = document.getElementById('capturePhoto');
 const stopCameraBtn = document.getElementById('stopCamera');
 const capturedPhoto = document.getElementById('capturedPhoto');
-const downloadPhotoBtn = document.getElementById('downloadPhoto');
 const cameraStatus = document.getElementById('cameraStatus');
 const telegramStatus = document.getElementById('telegramStatus');
 
@@ -43,14 +42,9 @@ function initializeTelegramWebApp() {
         
         // Show main button for sharing photos
         tg.MainButton.setText('Share Photo');
-        tg.MainButton.hide();
-        
-        // Handle main button click
-        tg.MainButton.onClick(function() {
-            if (capturedPhoto.src && capturedPhoto.src !== window.location.href) {
-                sharePhoto();
-            }
-        });
+        tg.MainButton.onClick(sharePhoto);
+        tg.MainButton.show(); // Show only after photo capture if needed
+
         
         console.log('Telegram WebApp initialized');
         console.log('User:', tg.initDataUnsafe?.user);
@@ -109,8 +103,9 @@ function setupEventListeners() {
     startCameraBtn.addEventListener('click', startCamera);
     capturePhotoBtn.addEventListener('click', capturePhoto);
     stopCameraBtn.addEventListener('click', stopCamera);
-    downloadPhotoBtn.addEventListener('click', downloadPhoto);
     document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
+    document.getElementById('savePhotoBtn').addEventListener('click', savePhoto);
+
 }
 
 
@@ -179,8 +174,11 @@ function capturePhoto() {
         
         // Display the captured photo
         capturedPhoto.src = imageDataUrl;
+        tg.MainButton.show();
         capturedPhoto.style.display = 'block';
-        downloadPhotoBtn.style.display = 'inline-block';
+        document.getElementById('savePhotoBtn').disabled = false;
+        document.getElementById('savePhotoBtn').style.display = 'inline-block';
+
         
         // Show Telegram main button for sharing
         if (tg) {
@@ -199,6 +197,25 @@ function capturePhoto() {
         alert('Error capturing photo: ' + error.message);
     }
 }
+function savePhoto() {
+    if (!capturedPhoto.src) {
+        showMessage('No photo to save', 'error');
+        return;
+    }
+    
+    canvas.toBlob(async (blob) => {
+        try {
+            if (navigator.clipboard) {
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+                showMessage('Copied to clipboard. Paste in photos app to save—direct save impossible in MiniApp.', 'success');
+            } else {
+                showMessage('Clipboard unsupported. Long-press photo to save manually.', 'info');
+            }
+        } catch (error) {
+            showMessage('Save failed: ' + error.message + '. Use long-press.', 'error');
+        }
+    }, 'image/png');
+}
 
 function stopCamera() {
     if (cachedStream) {
@@ -213,40 +230,6 @@ function stopCamera() {
         console.log('Camera stopped');
     }
 }
-
-// Enhanced download functionality for Telegram environment
-function downloadPhoto() {
-    if (!capturedPhoto.src || capturedPhoto.src === window.location.href) {
-        showMessage('No photo to download', 'error');
-        return;
-    }
-    
-    if (tg) {
-        copyImageToClipboard(); // Fallback to clipboard in Telegram
-    } else {
-        const link = document.createElement('a');
-        link.download = 'photo.jpg';
-        link.href = capturedPhoto.src;
-        link.click();
-    }
-}
-
-async function copyImageToClipboard() {
-    if (!navigator.clipboard) {
-        showMessage('Clipboard not supported. Long-press image to save.', 'info');
-        return;
-    }
-    canvas.toBlob(async (blob) => {
-        try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            showMessage('Photo copied to clipboard', 'success');
-        } catch (error) {
-            console.error('Clipboard failed:', error);
-            showMessage('Clipboard failed: Long-press image to save', 'error');
-        }
-    }, 'image/png');
-}
-
 
 // Enhanced messaging system
 function showMessage(message, type = 'info') {
@@ -285,14 +268,20 @@ function sharePhoto() {
         showMessage('Cannot share', 'error');
         return;
     }
+    
     canvas.toBlob((blob) => {
         try {
-            const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
-            tg.sendData(JSON.stringify({ type: 'photo', file }));
-            showMessage('Photo shared successfully', 'success');
+            const url = URL.createObjectURL(blob);
+            tg.showPopup({
+                title: 'Share Photo',
+                message: 'Select where to share:',
+                buttons: [{type: 'default', text: 'Share to Chat'}]
+            }, () => {
+                tg.openTelegramLink(`tg://msg?url=${encodeURIComponent(url)}&text=Check this photo!`);
+            });
+            showMessage('Share popup opened—select contacts/chats manually.', 'success');
         } catch (error) {
-            console.error('Share failed:', error);
-            showMessage('Share failed: ' + error.message, 'error');
+            showMessage('Share failed: ' + error.message + '. Copy and share via clipboard.', 'error');
         }
     }, 'image/jpeg');
 }
