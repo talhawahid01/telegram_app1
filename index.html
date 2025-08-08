@@ -14,70 +14,35 @@
 </head>
 <body>
     <div class="container">
-        <h1>📸 Camera MiniApp</h1>
-        
+        <h1>Camera Mini App</h1>
         <div class="camera-section">
             <div class="video-container">
-                <video id="video" playsinline="true" autoplay="true" muted="true"></video>
-                <canvas id="canvas" style="display: none;"></canvas>
-                
-                <!-- Single camera status overlay -->
-                <div class="camera-overlay">
-                    <div class="camera-info">
-                        <span id="cameraStatus">Ready to start 📷</span>
-                    </div>
-                </div>
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none"></canvas>
             </div>
-        </div>        
-        
-        <div class="controls">
-            <button id="startCamera" class="btn btn-primary">Start Camera</button>
-            <button id="capturePhoto" class="btn btn-secondary" disabled>Take Photo</button>  
-            <button id="switchCameraBtn" class="btn btn-secondary" style="display: none;">
-                <span class="btn-icon">🔄</span>
-                Switch Camera
-            </button>                      
-            <button id="stopCamera" class="btn btn-danger" disabled>Stop Camera</button>
+      
+            <div class="controls">
+                <button id="startCamera" class="btn btn-primary">Start Camera</button>
+                <button id="capturePhoto" class="btn btn-secondary" disabled>Capture</button>
+                <button id="stopCamera" class="btn btn-danger" disabled>Stop</button>
+                <button id="switchCameraBtn" class="btn btn-success" style="display:none" disabled>Switch</button>
+                <button id="savePhotoBtn" class="btn" style="display:none" disabled>Save Photo</button>
+            </div>
         </div>
-        
-
-        
+      
         <div class="photo-section">
-            <h3>Captured Photo:</h3>
-            <img id="capturedPhoto" alt="Captured photo will appear here" />
-            <button id="savePhotoBtn" class="btn btn-primary" disabled>
-                <span class="btn-icon">💾</span>
-                Save Photo
-            </button>
+          <h3>Captured Photo</h3>
+          <img id="capturedPhoto" alt="" style="display:none" />
         </div>
-        
+      
         <div class="info-section">
-            <h3>Camera Info:</h3>
-            <div id="cameraInfo">
-                <p>Telegram WebApp: <span id="telegramStatus">Loading...</span></p>
-            </div>
+          <h3>Status</h3>
+          <p>Camera: <span id="cameraStatus">Idle</span></p>
+          <p>Telegram: <span id="telegramStatus">Checking...</span></p>
         </div>
     </div>
-    <details class="help-section">
-        <summary>❓ Need Help?</summary>
-        <div class="help-content">
-            <h4>Camera Permissions</h4>
-            <p>If camera access is denied:</p>
-            <ul>
-                <li>Check your browser/app camera permissions</li>
-                <li>Refresh the page and try again</li>
-                <li>Make sure no other apps are using the camera</li>
-            </ul>
-            
-            <h4>Photo Download</h4>
-            <p>In Telegram:</p>
-            <ul>
-                <li>To save: Tap "Save Photo" to copy to clipboard, then manually paste/save in your photos app. Long-press preview as fallback.</li>
-            </ul>
-        </div>
-    </details>
-    
-    
+      
+      <!-- Place your script tag AFTER the elements -->
     <script src="script.js"></script>
 </body>
 </html>
