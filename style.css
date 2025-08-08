@@ -319,3 +319,7 @@ h1 {
 #switchCameraBtn {
     display: none;
 }
+#savePhotoBtn {
+    background: var(--tg-theme-button-color, #0088cc);
+    color: white;
+}
