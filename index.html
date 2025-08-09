@@ -1,49 +1,48 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Camera MiniApp</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Enhanced mobile support -->
-    <meta name="theme-color" content="#0088cc">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta charset="utf-8">
+  <title>Camera Mini App</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <link rel="stylesheet" href="./style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Camera Mini App</h1>
-        <div class="camera-section">
-            <div class="video-container">
-                <video id="video" autoplay playsinline></video>
-                <canvas id="canvas" style="display:none"></canvas>
-            </div>
-      
-            <div class="controls">
-                <button id="startCamera" class="btn btn-primary">Start Camera</button>
-                <button id="capturePhoto" class="btn btn-secondary" disabled>Capture</button>
-                <button id="stopCamera" class="btn btn-danger" disabled>Stop</button>
-                <button id="switchCameraBtn" class="btn btn-success" style="display:none" disabled>Switch</button>
-                <button id="savePhotoBtn" class="btn" style="display:none" disabled>Save Photo</button>
-            </div>
-        </div>
-      
-        <div class="photo-section">
-          <h3>Captured Photo</h3>
-          <img id="capturedPhoto" alt="" style="display:none" />
-        </div>
-      
-        <div class="info-section">
-          <h3>Status</h3>
-          <p>Camera: <span id="cameraStatus">Idle</span></p>
-          <p>Telegram: <span id="telegramStatus">Checking...</span></p>
-        </div>
+  <div class="container">
+    <h1>Camera Mini App</h1>
+
+    <div class="camera-section">
+      <div class="video-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas" style="display:none"></canvas>
+      </div>
+
+      <div class="controls">
+        <button id="startCamera" class="btn btn-primary">Start Camera</button>
+        <button id="capturePhoto" class="btn btn-secondary" disabled>Capture</button>
+        <button id="stopCamera" class="btn btn-danger" disabled>Stop</button>
+        <button id="switchCameraBtn" class="btn btn-success" style="display:none" disabled>Switch</button>
+        <button id="savePhotoBtn" class="btn" style="display:none" disabled>Save Photo</button>
+      </div>
     </div>
-      
-      <!-- Place your script tag AFTER the elements -->
-    <script src="script.js"></script>
+
+    <div class="photo-section">
+      <h3>Captured Photo</h3>
+      <img id="capturedPhoto" alt="" style="display:none" />
+    </div>
+
+    <div class="info-section">
+      <h3>Status</h3>
+      <p>Camera: <span id="cameraStatus">Idle</span></p>
+      <p>Telegram: <span id="telegramStatus">Checking...</span></p>
+      <details class="help-section">
+        <summary>Why “Save to phone” opens Telegram?</summary>
+        <div class="help-content">
+          <p>Direct downloads from the Telegram Mini App webview are blocked. The bot will post the photo in chat; save/forward it from there.</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
 </body>
 </html>
-

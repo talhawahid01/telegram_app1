@@ -1,37 +1,40 @@
-// Telegram WebApp initialization
+// Telegram WebApp init
 let tg = window.Telegram?.WebApp;
 
-// Camera variables
+// Camera state
 let video = null;
 let canvas = null;
 let context = null;
-
-// Permission state tracking
 let cachedStream = null;
 let cameraPermissionGranted = false;
-let userDeniedPermission = false;
-let currentFacingMode = 'user'; // Track facing mode
+let currentFacingMode = 'user';
 
-// IndexedDB for browser-local photo storage (not device gallery)
+// Device switching helpers
+const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+let videoDevices = [];
+let deviceIndex = 0;
+
+// IndexedDB (kept only for local cache, not device gallery)
 let db;
 const dbRequest = indexedDB.open('MiniAppPhotos', 1);
 dbRequest.onupgradeneeded = (event) => {
   event.target.result.createObjectStore('photos', { keyPath: 'id', autoIncrement: true });
 };
 dbRequest.onsuccess = () => { db = dbRequest.result; };
-dbRequest.onerror = () => { console.error('Storage setup failed'); }; // avoid calling showMessage before it exists
+dbRequest.onerror = () => { console.error('Storage setup failed'); };
 
-// DOM elements (resolved after DOMContentLoaded, but safe to reference by id after load)
-let startCameraBtn, capturePhotoBtn, stopCameraBtn, capturedPhoto, cameraStatus, telegramStatus;
+// DOM refs
+let startCameraBtn, capturePhotoBtn, stopCameraBtn, capturedPhoto, cameraStatus, telegramStatus, switchBtn, saveBtn;
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Resolve elements
-  startCameraBtn = document.getElementById('startCamera');
-  capturePhotoBtn = document.getElementById('capturePhoto');
-  stopCameraBtn = document.getElementById('stopCamera');
-  capturedPhoto = document.getElementById('capturedPhoto');
-  cameraStatus = document.getElementById('cameraStatus');
-  telegramStatus = document.getElementById('telegramStatus');
+document.addEventListener('DOMContentLoaded', () => {
+  startCameraBtn   = document.getElementById('startCamera');
+  capturePhotoBtn  = document.getElementById('capturePhoto');
+  stopCameraBtn    = document.getElementById('stopCamera');
+  capturedPhoto    = document.getElementById('capturedPhoto');
+  cameraStatus     = document.getElementById('cameraStatus');
+  telegramStatus   = document.getElementById('telegramStatus');
+  switchBtn        = document.getElementById('switchCameraBtn');
+  saveBtn          = document.getElementById('savePhotoBtn');
 
   initializeTelegramWebApp();
   initializeCamera();
@@ -49,17 +52,13 @@ function initializeTelegramWebApp() {
 
     telegramStatus.textContent = 'Connected ✅';
 
-    // Configure MainButton but hide until a photo exists
     tg.MainButton.setText('Share Photo');
     tg.MainButton.onClick(sharePhoto);
     tg.MainButton.hide();
 
     console.log('Telegram WebApp initialized');
-    console.log('User:', tg.initDataUnsafe?.user);
-    console.log('Theme:', tg.themeParams);
   } else {
     telegramStatus.textContent = 'Not in Telegram ❌';
-    console.log('Not running in Telegram WebApp');
   }
 }
 
@@ -75,7 +74,6 @@ function initializeCamera() {
   }
 
   cameraStatus.textContent = 'Ready to start 📷';
-
   checkInitialCameraAccess().catch(() => {
     cameraStatus.textContent = 'Permission check unavailable ⚠️';
   });
@@ -83,7 +81,6 @@ function initializeCamera() {
 
 async function checkInitialCameraAccess() {
   if (!navigator.permissions) return;
-
   try {
     const permission = await navigator.permissions.query({ name: 'camera' });
     if (permission.state === 'granted') {
@@ -91,7 +88,6 @@ async function checkInitialCameraAccess() {
       cameraStatus.textContent = 'Camera access granted 🟢';
       startCameraBtn.textContent = 'Start Camera (Permission Granted)';
     } else if (permission.state === 'denied') {
-      userDeniedPermission = true;
       cameraStatus.textContent = 'Camera access denied ❌';
       startCameraBtn.textContent = 'Camera Denied - Check Settings';
     } else {
@@ -99,7 +95,6 @@ async function checkInitialCameraAccess() {
     }
   } catch (err) {
     console.log('Permission query not supported:', err);
-    cameraStatus.textContent = 'Permission check unavailable ⚠️';
   }
 }
 
@@ -107,27 +102,29 @@ function setupEventListeners() {
   startCameraBtn.addEventListener('click', startCamera);
   capturePhotoBtn.addEventListener('click', capturePhoto);
   stopCameraBtn.addEventListener('click', stopCamera);
-  document.getElementById('switchCameraBtn').addEventListener('click', switchCamera);
-  document.getElementById('savePhotoBtn').addEventListener('click', savePhoto);
+  switchBtn.addEventListener('click', switchCamera);
+  saveBtn.addEventListener('click', savePhoto);
 
-  document.addEventListener('visibilitychange', function () {
+  document.addEventListener('visibilitychange', () => {
     if (document.hidden && cachedStream && cachedStream.active) {
-      console.log('Page hidden, pausing camera');
       stopCamera();
-    } else if (!document.hidden && cameraPermissionGranted) {
-      console.log('Page visible, resuming camera');
-      startCamera().catch(() => {});
     }
-  });
-
-  window.addEventListener('error', function (event) {
-    console.error('Global error:', event.error);
   });
 
   window.addEventListener('beforeunload', () => {
     if (tg && tg.MainButton) tg.MainButton.offClick();
     stopCamera();
   });
+}
+
+async function initVideoDevices() {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    videoDevices = devices.filter(d => d.kind === 'videoinput');
+  } catch (e) {
+    console.warn('enumerateDevices failed:', e);
+    videoDevices = [];
+  }
 }
 
 async function startCamera() {
@@ -139,18 +136,15 @@ async function startCamera() {
     }
 
     cameraStatus.textContent = 'Requesting camera access... ⏳';
-    const constraints = {
-      video: {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        facingMode: currentFacingMode
-      },
-      audio: false
-    };
+    const constraints = isIOS
+      ? { video: { facingMode: currentFacingMode }, audio: false }
+      : { video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: currentFacingMode }, audio: false };
 
     cachedStream = await navigator.mediaDevices.getUserMedia(constraints);
     video.srcObject = cachedStream;
     cameraPermissionGranted = true;
+
+    await initVideoDevices();
     setupVideoSuccess();
   } catch (error) {
     handleCameraError(error);
@@ -159,24 +153,22 @@ async function startCamera() {
 
 function setupVideoSuccess() {
   video.onloadedmetadata = function () {
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
     cameraStatus.textContent = 'Camera active 🟢';
+
     startCameraBtn.disabled = true;
     capturePhotoBtn.disabled = false;
     stopCameraBtn.disabled = false;
-    document.getElementById('switchCameraBtn').style.display = 'inline-block';
+
+    switchBtn.style.display = 'inline-block';
+    switchBtn.disabled = false;
   };
 }
 
 function handleCameraError(error) {
   cameraStatus.textContent = 'Camera error ❌';
-  if (error.name === 'NotAllowedError') {
-    userDeniedPermission = true;
-    alert('Camera access denied. Check settings and refresh.');
-  } else {
-    alert('Error: ' + error.message);
-  }
+  alert('Error: ' + (error?.message || String(error)));
 }
 
 function capturePhoto() {
@@ -184,21 +176,17 @@ function capturePhoto() {
     alert('Camera not initialized');
     return;
   }
-
   try {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
 
     capturedPhoto.src = imageDataUrl;
     capturedPhoto.style.display = 'block';
 
-    const saveBtn = document.getElementById('savePhotoBtn');
     saveBtn.disabled = false;
     saveBtn.style.display = 'inline-block';
 
     if (tg) tg.MainButton.show();
-
-    console.log('Photo captured successfully');
 
     if (tg && tg.HapticFeedback) {
       tg.HapticFeedback.impactOccurred('medium');
@@ -209,101 +197,44 @@ function capturePhoto() {
   }
 }
 
-function savePhoto() {
-  if (!capturedPhoto.src) {
-    showMessage('No photo to save', 'error');
-    return;
-  }
-  if (!db) {
-    showMessage('Storage not ready', 'error');
-    return;
-  }
+// Compress canvas to fit sendData limit (~4096 chars). Also shrink dimensions for reliability.
+function dataUrlForSendData(maxChars = 3800) {
+  // Downscale to fixed width (e.g., 320px) keeping aspect ratio
+  const targetW = 320;
+  const scale = targetW / canvas.width;
+  const targetH = Math.round(canvas.height * scale);
 
-  canvas.toBlob((blob) => {
-    if (!blob) {
-      showMessage('Failed to get image blob', 'error');
-      return;
-    }
-    try {
-      const transaction = db.transaction(['photos'], 'readwrite');
-      const store = transaction.objectStore('photos');
-      const request = store.add({ blob, ts: Date.now() });
+  const tmp = document.createElement('canvas');
+  tmp.width = targetW;
+  tmp.height = targetH;
+  const tctx = tmp.getContext('2d');
+  tctx.drawImage(canvas, 0, 0, targetW, targetH);
 
-      request.onsuccess = (e) => {
-        showMessage(`Photo stored locally in browser (ID: ${e.target.result}).`, 'success');
-      };
-      request.onerror = (e) => {
-        showMessage('Local storage failed: ' + (e.target.error?.message || 'Unknown'), 'error');
-      };
-    } catch (error) {
-      showMessage('Local storage failed: ' + error.message, 'error');
-    }
-  }, 'image/png');
+  let q = 0.5;
+  let best = tmp.toDataURL('image/jpeg', q);
+  for (let i = 0; i < 5; i++) {
+    if (best.length <= maxChars) break;
+    q = Math.max(0.2, q - 0.1);
+    best = tmp.toDataURL('image/jpeg', q);
+  }
+  return best;
 }
 
-function stopCamera() {
-  if (cachedStream) {
-    cachedStream.getTracks().forEach(track => track.stop());
-    cachedStream = null;
-  }
-  if (video) video.srcObject = null;
-
-  cameraStatus.textContent = 'Camera stopped 🔴';
-  startCameraBtn.disabled = false;
-  capturePhotoBtn.disabled = true;
-  stopCameraBtn.disabled = true;
-  document.getElementById('switchCameraBtn').style.display = 'none';
-  console.log('Camera stopped');
-}
-
-function showMessage(message, type = 'info') {
-  console.log(`${type.toUpperCase()}: ${message}`);
-  if (tg && tg.showAlert) {
-    tg.showAlert(message);
-    return;
-  }
-  const messageEl = document.createElement('div');
-  messageEl.textContent = message;
-  messageEl.style.cssText = `
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
-    color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
-    z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  `;
-  document.body.appendChild(messageEl);
-  setTimeout(() => {
-    if (document.body.contains(messageEl)) {
-      document.body.removeChild(messageEl);
-    }
-  }, 3000);
-}
-
-// Supported sharing method in Telegram Mini Apps
 function sharePhoto() {
   if (!tg || !capturedPhoto.src) {
-    showMessage('Cannot share', 'error');
+    showMessage('Capture a photo first', 'error');
     return;
   }
 
-  // Try to send compressed data URL (must be <= 4096 bytes), else require server upload.
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-
-  if (dataUrl.length > 4000) {
-    showMessage('Photo too large to send directly. Upload to your server and send a token via sendData.', 'error');
-    return;
-  }
-
+  // Must be launched via keyboard-based Mini App; otherwise sendData is not available.
   try {
+    const dataUrl = dataUrlForSendData(3800);
+    if (dataUrl.length > 4000) {
+      showMessage('Photo too large for sendData; image will be low-res. Try again after retake.', 'error');
+      return;
+    }
     tg.sendData(JSON.stringify({ type: 'photo_dataurl', dataUrl }));
-    showMessage('Photo sent to bot.', 'success');
-    // Optionally close the app:
-    // tg.close();
+    showMessage('Photo sent to bot. Check chat to forward/save.', 'success');
   } catch (err) {
     showMessage('Share failed: ' + err.message, 'error');
   }
@@ -318,19 +249,91 @@ async function switchCamera() {
   startCameraBtn.disabled = true;
   capturePhotoBtn.disabled = true;
   stopCameraBtn.disabled = true;
-  const switchBtn = document.getElementById('switchCameraBtn');
   switchBtn.disabled = true;
 
   try {
-    stopCamera();
-    currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
-    await startCamera();
+    // Stop current stream
+    cachedStream.getTracks().forEach(t => t.stop());
+    cachedStream = null;
+    video.srcObject = null;
+
+    if (isIOS) {
+      // Toggle facing mode
+      currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+      await startCamera();
+    } else {
+      // Prefer deviceId cycle if multiple cameras; fallback to facingMode
+      if (videoDevices.length > 1) {
+        deviceIndex = (deviceIndex + 1) % videoDevices.length;
+        const deviceId = videoDevices[deviceIndex].deviceId;
+        cachedStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: deviceId } }, audio: false });
+        video.srcObject = cachedStream;
+        setupVideoSuccess();
+      } else {
+        currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+        await startCamera();
+      }
+    }
   } catch (error) {
-    showMessage('Camera switch failed: ' + error.message, 'error');
+    showMessage('Camera switch failed: ' + (error?.message || String(error)), 'error');
   } finally {
-    startCameraBtn.disabled = true; // camera running
+    startCameraBtn.disabled = true;
     capturePhotoBtn.disabled = false;
     stopCameraBtn.disabled = false;
     switchBtn.disabled = false;
   }
+}
+
+function stopCamera() {
+  if (cachedStream) {
+    cachedStream.getTracks().forEach(track => track.stop());
+    cachedStream = null;
+  }
+  if (video) video.srcObject = null;
+
+  cameraStatus.textContent = 'Camera stopped 🔴';
+  startCameraBtn.disabled = false;
+  capturePhotoBtn.disabled = true;
+  stopCameraBtn.disabled = true;
+  switchBtn.style.display = 'none';
+}
+
+function savePhoto() {
+  if (!capturedPhoto.src) {
+    showMessage('No photo to save', 'error');
+    return;
+  }
+  // No public server: instruct user to save from bot message
+  showMessage('Saving from webview is blocked. We will send the photo in chat; save it from there.', 'info');
+
+  // Optional: store locally (browser storage, not device gallery)
+  if (!db) return;
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    try {
+      const tx = db.transaction(['photos'], 'readwrite');
+      const store = tx.objectStore('photos');
+      store.add({ blob, ts: Date.now() });
+    } catch {}
+  }, 'image/jpeg', 0.9);
+}
+
+function showMessage(message, type = 'info') {
+  console.log(`${type.toUpperCase()}: ${message}`);
+  if (tg && tg.showAlert) {
+    tg.showAlert(message);
+    return;
+  }
+  const el = document.createElement('div');
+  el.textContent = message;
+  el.style.cssText = `
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
+    color: white; padding: 10px 20px; border-radius: 8px; z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  `;
+  document.body.appendChild(el);
+  setTimeout(() => {
+    if (document.body.contains(el)) document.body.removeChild(el);
+  }, 2500);
 }
