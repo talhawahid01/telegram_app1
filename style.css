@@ -1,5 +1,73 @@
-body { font-family: sans-serif; margin: 0; height: 100vh; display: flex; flex-direction: column; }
-#chat { flex: 1; overflow-y: auto; padding: 10px; }
-#form { display: flex; padding: 10px; gap: 8px; }
-#input { flex: 1; padding: 8px; }
-button { padding: 8px 16px; }
+/* Page flex – centers the whole chat card */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+  background: #fafafa;
+  display: flex;
+  align-items: center;   /* horizontal center */
+  justify-content: center; /* vertical center */
+}
+
+/* Chat card */
+#chat-container {
+  width: 90%;
+  max-width: 420px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Conversation area */
+#output {
+  flex: 1;                         /* take remaining vertical space */
+  overflow-y: auto;
+  min-height: 120px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 12px;
+  white-space: pre-wrap;
+  font-size: 1rem;
+}
+
+/* Input row – larger touch targets */
+#input-row {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+#inp {
+  flex: 1;
+  padding: 14px 16px;
+  font-size: 1.1rem;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color .2s;
+}
+#inp:focus {
+  border-color: #1a73e8;
+}
+
+#send {
+  flex: 0 0 70px;                 /* fixed width for the button */
+  padding: 0;
+  font-size: 1.2rem;
+  background: #1a73e8;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background .2s;
+}
+#send:hover {
+  background: #155ab4;
+}
+#send:active {
+  background: #0f4c8a;
+}
